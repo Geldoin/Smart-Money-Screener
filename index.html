@@ -1234,6 +1234,7 @@ function renderWave(mc,main){
   }).join('');
 
   // ── VDS background zones + line ──────────────────────────────────────
+  const barW = PX_PER_SESSION - 4;
   const vdsZoneRects=hasVDS?series.map((s,i)=>{
     if(s.vds===null)return'';
     const zc=vdsZoneColor(s.vds);
@@ -1258,7 +1259,6 @@ function renderWave(mc,main){
   }).join(''):'';
 
   // ── Count bars
-  const barW = PX_PER_SESSION - 4;
   const countBars=series.map((s,i)=>{
     const x=px(i);
     const bh=(s.count/maxCount)*(H1-18);
