@@ -1734,13 +1734,12 @@ function renderWave(mc,main){
     }
     var tip = document.createElement('div');
     tip.id = 'wave-tip';
-    tip.style.cssText = 'display:none;position:absolute;pointer-events:none;background:#1a1a18;color:#fff;border-radius:8px;padding:9px 12px;font-size:11px;line-height:1.7;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap;z-index:99;min-width:160px;';
-    wrap.style.position = 'relative';
-    wrap.appendChild(tip);
+    tip.style.cssText = 'display:none;position:fixed;pointer-events:none;background:#1a1a18;color:#fff;border-radius:8px;padding:9px 12px;font-size:11px;line-height:1.7;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap;z-index:9999;min-width:160px;';
+    document.body.appendChild(tip);
     var data = window._waveTooltipData || [];
     var phCol = {'Momentum ↑':'#3B6D11','Extended ⚠':'#854F0B','Rotation ↔':'#185FA5','Cooling ↓':'#A32D2D','—':'#888780'};
     function sg(v){ return v>=0?'+':''; }
-    function showTip(d, el){
+    function showTip(d, ev){
       var col = phCol[d.phase.label] || '#888780';
       var hc  = d.hist>=0 ? '#5DC86E' : '#E8807F';
       tip.innerHTML =
@@ -1752,14 +1751,11 @@ function renderWave(mc,main){
         (d.vds!==null&&d.vds!==undefined?'<div style="color:#aaa8a4;">Universe VDS: <strong style="color:'+(d.vds>=55?'#5DC86E':d.vds>=45?'#F5C842':'#E8807F')+';">'+d.vds+'</strong> <span style="font-size:9px;color:#888780;">'+(d.vds>=55?'ACC':d.vds>=45?'NEUT':'DIST')+'</span></div>':'')+
         '<div style="margin-top:4px;"><span style="background:'+col+'22;color:'+col+';border-radius:4px;padding:1px 6px;font-size:10px;">'+d.phase.label+'</span>'+(d.isLast?' <span style="font-size:9px;color:#B5D4F4;">TODAY</span>':'')+'</div>';
       tip.style.display = 'block';
-      var svgEl = document.getElementById('wave-main-svg');
-      var svgR  = svgEl ? svgEl.getBoundingClientRect() : wrap.getBoundingClientRect();
-      var wrapR = wrap.getBoundingClientRect();
-      var scaleX = svgEl ? (svgR.width / parseFloat(svgEl.getAttribute('width'))) : 1;
-      var tx = d.x * scaleX - wrap.scrollLeft + (svgR.left - wrapR.left);
-      var ty = d.y * scaleX;
-      if(tx + 200 > wrap.clientWidth) tx -= 215; else tx += 14;
-      ty = Math.max(4, ty - 115);
+      // position:fixed → use viewport mouse coordinates directly, no scroll math
+      var mx = ev ? ev.clientX : 0;
+      var my = ev ? ev.clientY : 0;
+      var tx = (mx + 16 + 220 > window.innerWidth) ? mx - 220 : mx + 16;
+      var ty = Math.max(4, my - 80);
       tip.style.left = tx+'px';
       tip.style.top  = ty+'px';
     }
@@ -1767,9 +1763,10 @@ function renderWave(mc,main){
       var i = parseInt(el.getAttribute('data-i'));
       var d = data[i];
       if(!d) return;
-      el.addEventListener('mouseenter', function(){ showTip(d,el); });
+      el.addEventListener('mouseenter', function(e){ showTip(d,e); });
+      el.addEventListener('mousemove',  function(e){ showTip(d,e); });
       el.addEventListener('mouseleave', function(){ tip.style.display='none'; });
-      el.addEventListener('touchstart', function(e){ e.preventDefault(); showTip(d,el); },{passive:false});
+      el.addEventListener('touchstart', function(e){ e.preventDefault(); showTip(d,e); },{passive:false});
     });
 
     // ── MACD chart: scroll-sync + tooltip ───────────────────────
@@ -1783,11 +1780,11 @@ function renderWave(mc,main){
       // Tooltip
       var macdData = window._waveTooltipData || [];
       var macdTip = document.createElement('div');
-      macdTip.style.cssText = 'display:none;position:absolute;pointer-events:none;background:#1a1a18;color:#fff;border-radius:8px;padding:8px 12px;font-size:11px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap;z-index:99;min-width:130px;';
-      macdWrap.appendChild(macdTip);
+      macdTip.style.cssText = 'display:none;position:fixed;pointer-events:none;background:#1a1a18;color:#fff;border-radius:8px;padding:8px 12px;font-size:11px;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,.25);white-space:nowrap;z-index:9999;min-width:130px;';
+      document.body.appendChild(macdTip);
       var phCol = {'Momentum ↑':'#3B6D11','Extended ⚠':'#854F0B','Rotation ↔':'#185FA5','Cooling ↓':'#A32D2D','—':'#888780'};
       function sg2(v){ return v>=0?'+':''; }
-      function showMacdTip(d){
+      function showMacdTip(d, ev){
         var hc = d.hist>=0?'#5DC86E':'#E8807F';
         var ph = (d.phase&&d.phase.label)||'—';
         var col = phCol[ph]||'#888780';
@@ -1797,22 +1794,21 @@ function renderWave(mc,main){
           '<div style="color:#aaa8a4;">avg 1W%: <strong style="color:'+(d.avgW>=0?'#5DC86E':'#E8807F')+';">'+sg2(d.avgW)+d.avgW.toFixed(2)+'%</strong></div>'+
           '<div style="margin-top:3px;"><span style="background:'+col+'22;color:'+col+';border-radius:4px;padding:1px 5px;font-size:9px;">'+ph+'</span></div>';
         macdTip.style.display='block';
-        var macdSvg=document.getElementById('wave-macd-svg');
-        var svgR=macdSvg?macdSvg.getBoundingClientRect():macdWrap.getBoundingClientRect();
-        var wrapR=macdWrap.getBoundingClientRect();
-        var scaleX=macdSvg?(svgR.width/parseFloat(macdSvg.getAttribute('width'))):1;
-        var tx=d.x*scaleX-macdWrap.scrollLeft+(svgR.left-wrapR.left);
-        if(tx+180>macdWrap.clientWidth)tx-=195;else tx+=14;
+        // position:fixed → mouse viewport coords, no scroll math
+        var mx = ev ? ev.clientX : 0;
+        var my = ev ? ev.clientY : 0;
+        var tx = (mx + 16 + 200 > window.innerWidth) ? mx - 200 : mx + 16;
         macdTip.style.left=tx+'px';
-        macdTip.style.top='2px';
+        macdTip.style.top=Math.max(4, my - 60)+'px';
       }
       macdWrap.querySelectorAll('.macd-hit').forEach(function(el){
         var i=parseInt(el.getAttribute('data-i'));
         var d=macdData[i];
         if(!d)return;
-        el.addEventListener('mouseenter',function(){showMacdTip(d);});
+        el.addEventListener('mouseenter',function(e){showMacdTip(d,e);});
+        el.addEventListener('mousemove', function(e){showMacdTip(d,e);});
         el.addEventListener('mouseleave',function(){macdTip.style.display='none';});
-        el.addEventListener('touchstart',function(e){e.preventDefault();showMacdTip(d);},{passive:false});
+        el.addEventListener('touchstart',function(e){e.preventDefault();showMacdTip(d,e);},{passive:false});
       });
     })();
 
